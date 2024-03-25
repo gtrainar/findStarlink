@@ -34,4 +34,4 @@ command_line:
 # Acknowledgements
 
 - Brandon Rhodes for the outstanding Skyfield library - https://rhodesmill.org/skyfield/
-- Anthony Mllama - Center for the Protection of Dark and Quiet Skied from Statelite Constellation Interference for the study on luminosity of the Starlink Satellites - https://export.arxiv.org/pdf/2401.01546 
+- Anthony Mallama - Center for the Protection of Dark and Quiet Skied from Statelite Constellation Interference for the study on luminosity of the Starlink Satellites - https://export.arxiv.org/pdf/2401.01546 
