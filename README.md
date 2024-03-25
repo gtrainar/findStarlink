@@ -31,7 +31,7 @@ command_line:
 
 ![Home Assistant Lovelace Card!](./next_starlink_passes.png)
 
-#Acknowledgements
+# Acknowledgements
 
-Brandon Rhodes for the outstanding Skyfield library - https://rhodesmill.org/skyfield/
-Anthony Mllama - Center for the Protection of Dark and Quiet Skied from Statelite Constellation Interference for the study on luminosity of the Starlink Satellites - https://export.arxiv.org/pdf/2401.01546 
+- Brandon Rhodes for the outstanding Skyfield library - https://rhodesmill.org/skyfield/
+- Anthony Mllama - Center for the Protection of Dark and Quiet Skied from Statelite Constellation Interference for the study on luminosity of the Starlink Satellites - https://export.arxiv.org/pdf/2401.01546 
