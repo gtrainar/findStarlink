@@ -32,8 +32,11 @@ sun, earth,  = eph['sun'], eph['earth']
 # Set observer's location (replace with your coordinates)
 my_location = Topos(latitude_degrees=48.8534, longitude_degrees=2.3488)
 tz = timezone('Europe/Paris')
-bluffton = wgs84.latlon(48.8534 * N, 2.3488 * W)
-observer = eph['earth'] + bluffton
+home = wgs84.latlon(48.8534 * N, 2.3488 * W)
+observer = eph['earth'] + home
+
+# Check if it is Dark
+isDark = almanac.dark_twilight_day(eph, home)
 
 # Load TLE data for Starlink satellites
 def load_sat_data(url):
@@ -111,24 +114,10 @@ def search_satellites(name):
         t, events = sat.find_events(my_location, start_time, end_time, altitude_degrees=10.0)
         for t_sat_r, event in zip(t, events):
             
-                if not (event == 0 and sat.at(t_sat_r).is_sunlit(eph)):  # 0 = satellite rises above altitude_degrees and is sunlit
+                if not (event == 0 and sat.at(t_sat_r).is_sunlit(eph) and isDark(t_sat_r) == 0):  # 0 = satellite rises above altitude_degrees and is sunlit and it is Dark
                     continue
                 
                 t_sat_rise = t_sat_r.astimezone(tz)   
-                
-                # Set sun rising and setting times
-                start_day = ts.utc(t_sat_r.utc.year, t_sat_r.utc.month, t_sat_r.utc.day, 0, 0, 0)
-                end_day = ts.utc(t_sat_r.utc.year, t_sat_r.utc.month, t_sat_r.utc.day, 23, 59, 59)
-
-                t_sun_s, event_sun = almanac.find_settings(observer, sun, start_day, end_day)
-                t_sunset = t_sun_s[0].astimezone(tz)
-                
-                t_sun_r, event_sun_r = almanac.find_risings(observer, sun, start_day + 1 , end_day + 1)
-                t_sunrise = t_sun_r[0].astimezone(tz)
-                
-                # Check if it's dark enough 
-                if not(t_sat_rise > t_sunset + timedelta(minutes=15) and t_sat_rise < (t_sunrise - timedelta(hours=4))):
-                   continue
                 
                 # Set satellite culmination time within 10 min after rising
                 times_c, events_c = sat.find_events(my_location, t_sat_r, t_sat_r + 0.007, altitude_degrees=10.0)
@@ -149,7 +138,7 @@ def search_satellites(name):
                     
                     if DEBUG:
                         
-                       print("satellite_ID:", sat.name, "t_sunset: ", str(t_sunset)[:16],", t_sunrise: ", str(t_sunrise)[:16], "t_sat_rise:", str(t_sat_rise)[:16], "t_sat_set:", str(t_sat_set)[:16], "pass_duration:", str(pass_duration)[:7])
+                       print("satellite_ID:", sat.name, "t_sat_rise:", str(t_sat_rise)[:16], "t_sat_set:", str(t_sat_set)[:16], "pass_duration:", str(pass_duration)[:7])
 
                     # Calculate the apparent magnitude at culmination
                     # Ref: http://export.arxiv.org/pdf/2401.01546		                        
