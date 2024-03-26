@@ -13,7 +13,7 @@ DEBUG = False #True to print info
 WEB = True    #False to work on a local file and avoid API calls to CELESTRAK. True to download the latest TLE file
 
 # TLE data sources for Starlink satellites
-starlink_url = 'https://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&FORMAT=tle'
+starlink_url = 'http://celestrak.org/NORAD/elements/supplemental/sup-gp.php?FILE=starlink&FORMAT=tle'
 tle_file = "starlink_sat.txt"
    
 # Load timescale
@@ -113,80 +113,82 @@ def search_satellites(name):
             
                 if not (event == 0 and sat.at(t_sat_r).is_sunlit(eph)):  # 0 = satellite rises above altitude_degrees and is sunlit
                     continue
+                
                 t_sat_rise = t_sat_r.astimezone(tz)   
+                
                 # Set sun rising and setting times
                 start_day = ts.utc(t_sat_r.utc.year, t_sat_r.utc.month, t_sat_r.utc.day, 0, 0, 0)
                 end_day = ts.utc(t_sat_r.utc.year, t_sat_r.utc.month, t_sat_r.utc.day, 23, 59, 59)
 
-                t_sun, event_sun = almanac.find_settings(observer, sun, start_day, end_day)
-                if len(t_sun) > 0:
-                    t_sunset = t_sun[0].astimezone(tz)
-                    t_sun_r, event_sun_r = almanac.find_risings(observer, sun, start_day + 1 , end_day + 1)
-                    t_sunrise = t_sun_r[0].astimezone(tz)
+                t_sun_s, event_sun = almanac.find_settings(observer, sun, start_day, end_day)
+                t_sunset = t_sun_s[0].astimezone(tz)
+                
+                t_sun_r, event_sun_r = almanac.find_risings(observer, sun, start_day + 1 , end_day + 1)
+                t_sunrise = t_sun_r[0].astimezone(tz)
+                
+                # Check if it's dark enough 
+                if not(t_sat_rise > t_sunset + timedelta(minutes=15)):
+                   continue
+                
+                # Set satellite culmination time within 10 min after rising
+                times_c, events_c = sat.find_events(my_location, t_sat_r, t_sat_r + 0.007, altitude_degrees=10.0)
+                for t_sat_c, event_sat_c in zip(times_c, events_c):
+                    if event_sat_c == 1:
+                       t_sat_culm = t_sat_c
+                                                  
+                # Set satellite setting time within 10 min after rising
+                times_s, events_s = sat.find_events(my_location, t_sat_r, t_sat_r + 0.007, altitude_degrees=10.0)
+                for t_sat_s, event_sat_s in zip(times_s, events_s):
+                    if event_sat_s == 2:
+                       t_sat_set = t_sat_s.astimezone(tz)
+                
+                pass_duration = t_sat_set - t_sat_rise
+                
+                # Check is satellite is visible long enough at night.
+                if t_sat_rise < (t_sunrise - timedelta(hours=4)) and pass_duration > timedelta(minutes=3):
                     
-                    # Check if it's dark enough 
-                    if not(t_sat_rise > t_sunset + timedelta(minutes=15)):
-                       continue
-                    
-                    # Set satellite culmination time within 30 min after rising
-                    times_c, events_c = sat.find_events(my_location, t_sat_r, t_sat_r + 0.02, altitude_degrees=10.0)
-                    for t_sat_c, event_sat_c in zip(times_c, events_c):
-                        if event_sat_c == 1:
-                           t_sat_culm = t_sat_c
-                                                      
-                    # Set satellite setting time within 30 min after rising
-                    times_s, events_s = sat.find_events(my_location, t_sat_r, t_sat_r + 0.02, altitude_degrees=10.0)
-                    for t_sat_s, event_sat_s in zip(times_s, events_s):
-                        if event_sat_s == 2:
-                           t_sat_set = t_sat_s.astimezone(tz)
-                    
-                    pass_duration = t_sat_set - t_sat_rise
-                    
-                    # Check is satellite is visible long enough at night.
-                    if t_sat_rise < (t_sunrise - timedelta(hours=4)) and pass_duration > timedelta(minutes=3):
+                    if DEBUG:
                         
-                        if DEBUG:
+                       print("satellite_ID:", name, "t_sunset: ", str(t_sunset)[:16],", t_sunrise: ", str(t_sunrise)[:16], "t_sat_rise:", str(t_sat_rise)[:16], "t_sat_set:", str(t_sat_set)[:16], "pass_duration:", str(pass_duration)[:7])
+
+                    # Calculate the apparent magnitude at culmination
+                    # Ref: http://export.arxiv.org/pdf/2401.01546		                        
+                    sat_phase_angle = earth.at(t_sat_culm).observe(earth + sat).apparent().phase_angle(sun)
+                    sat_phi = sat_phase_angle.degrees
+                    apparent_mag = 6.657 - 0.05474 * sat_phi + 0.001438 * sat_phi * sat_phi - 0.000008061 * sat_phi * sat_phi * sat_phi
+
+                    # Adjust apparent magnitude for new VisoSat satellites which are 30% dimmer. Launched after 2021.11                         
+                    if sat.model.satnum < 49752:
+                        apparent_mag = apparent_mag - 1.3
+                        
+                    if DEBUG:                            
+                       print("sat_phi:", round(sat_phi,0), ", mag:",round(apparent_mag,1))
+
+                    # Select only satellites with enough brightness
+                    if apparent_mag < 5.5:
+
+                       # Calculate the start/end azimuth of the trajectory
+                       difference = sat - my_location
+                       topocentric = difference.at(t_sat_r)
+                       sat_distance = topocentric.distance().km
+                                                                       
+                       start_azi = topocentric.altaz()[1].degrees
+                       end_azi = start_azi + 180
+                       
+                       mag = round(apparent_mag,1)
+
+                       data = {
+                            "satellite": sat.name,
+                            "risingTime": t_sat_rise.strftime('%d %b %Y, %H:%M'),
+                            "culminationTime": t_sat_culm.astimezone(tz).strftime('%d %b %Y, %H:%M'),
+                            "settingTime": t_sat_set.strftime('%d %b %Y, %H:%M'),
+                            "startAz": azimuth_to_compass(start_azi),
+                            "endAz": azimuth_to_compass(end_azi),
+                            "mag": mag,
+                            "date": t_sat_rise.strftime('%Y-%m-%d')
+                        }
                             
-                           print("t_sunset: ", str(t_sunset)[:16],", t_sunrise: ", str(t_sunrise)[:16], "t_sat_rise:", str(t_sat_rise)[:16], "t_sat_set:", str(t_sat_set)[:16], "pass_duration:", str(pass_duration)[:7])
-
-                        # Calculate the apparent magnitude at culmination
-                        # Ref: http://export.arxiv.org/pdf/2401.01546		                        
-                        sat_phase_angle = earth.at(t_sat_culm).observe(earth + sat).apparent().phase_angle(sun)
-                        sat_phi = sat_phase_angle.degrees
-                        apparent_mag = 6.657 - 0.05474 * sat_phi + 0.001438 * sat_phi * sat_phi - 0.000008061 * sat_phi * sat_phi * sat_phi
-
-                        # Adjust apparent magnitude for new VisoSat satellites which are 30% dimmer. Launched after 2021.11                         
-                        if sat.model.satnum < 49174:
-                            apparent_mag = apparent_mag - 1.3
-                            
-                        if DEBUG:                            
-                           print("sat_phi:", round(sat_phi,0), ", mag:",round(apparent_mag,1))
-
-                        # Select only satellites with enough brightness
-                        if apparent_mag < 7.0:
-
-                           # Calculate the start/end azimuth of the trajectory
-                           difference = sat - my_location
-                           topocentric = difference.at(t_sat_r)
-                           sat_distance = topocentric.distance().km
-                                                                           
-                           start_azi = topocentric.altaz()[1].degrees
-                           end_azi = start_azi + 180
-                           
-                           mag = round(apparent_mag,1)
-
-                           data = {
-                                "satellite": sat.name,
-                                "risingTime": t_sat_rise.strftime('%d %b %Y, %H:%M'),
-                                "culminationTime": t_sat_culm.astimezone(tz).strftime('%d %b %Y, %H:%M'),
-                                "settingTime": t_sat_set.strftime('%d %b %Y, %H:%M'),
-                                "startAz": azimuth_to_compass(start_azi),
-                                "endAz": azimuth_to_compass(end_azi),
-                                "mag": mag,
-                                "date": t_sat_rise.strftime('%Y-%m-%d')
-                            }
-                                
-                           starlink_found.append(data)
+                       starlink_found.append(data)
                     else:
                         continue
 
