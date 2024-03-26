@@ -127,7 +127,7 @@ def search_satellites(name):
                 t_sunrise = t_sun_r[0].astimezone(tz)
                 
                 # Check if it's dark enough 
-                if not(t_sat_rise > t_sunset + timedelta(minutes=15)):
+                if not(t_sat_rise > t_sunset + timedelta(minutes=15) and t_sat_rise < (t_sunrise - timedelta(hours=4))):
                    continue
                 
                 # Set satellite culmination time within 10 min after rising
@@ -145,11 +145,11 @@ def search_satellites(name):
                 pass_duration = t_sat_set - t_sat_rise
                 
                 # Check is satellite is visible long enough at night.
-                if t_sat_rise < (t_sunrise - timedelta(hours=4)) and pass_duration > timedelta(minutes=3):
+                if pass_duration > timedelta(minutes=3):
                     
                     if DEBUG:
                         
-                       print("satellite_ID:", name, "t_sunset: ", str(t_sunset)[:16],", t_sunrise: ", str(t_sunrise)[:16], "t_sat_rise:", str(t_sat_rise)[:16], "t_sat_set:", str(t_sat_set)[:16], "pass_duration:", str(pass_duration)[:7])
+                       print("satellite_ID:", sat.name, "t_sunset: ", str(t_sunset)[:16],", t_sunrise: ", str(t_sunrise)[:16], "t_sat_rise:", str(t_sat_rise)[:16], "t_sat_set:", str(t_sat_set)[:16], "pass_duration:", str(pass_duration)[:7])
 
                     # Calculate the apparent magnitude at culmination
                     # Ref: http://export.arxiv.org/pdf/2401.01546		                        
@@ -197,6 +197,7 @@ def main():
     if DEBUG:
         # Printing start time
         print("Start Time: ", start_time.astimezone(tz).strftime('%d %b %Y, %H:%M'))
+        print("Satellites Found:",len(STARLINK_IDS))
         print("Selected Starlink_IDs:",STARLINK_IDS)
         
     # Finding satellites
