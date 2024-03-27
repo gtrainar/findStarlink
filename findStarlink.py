@@ -155,7 +155,6 @@ def search_satellites(name):
                        # Calculate the start/end azimuth of the trajectory
                        difference = sat - my_location
                        topocentric = difference.at(t_sat_r)
-                       sat_distance = topocentric.distance().km
                                                                        
                        start_azi = topocentric.altaz()[1].degrees
                        end_azi = start_azi + 180
