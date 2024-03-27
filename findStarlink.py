@@ -114,22 +114,18 @@ def search_satellites(name):
         t, events = sat.find_events(my_location, start_time, end_time, altitude_degrees=10.0)
         for t_sat_r, event in zip(t, events):
             
-                if not (event == 0 and sat.at(t_sat_r).is_sunlit(eph) and isDark(t_sat_r) == 0):  # 0 = satellite rises above altitude_degrees and is sunlit and it is Dark
+                if not (event == 0 and isDark(t_sat_r) == 0 and sat.at(t_sat_r).is_sunlit(eph)):  # 0 = satellite rises above altitude_degrees and is sunlit and it is Dark
                     continue
                 
                 t_sat_rise = t_sat_r.astimezone(tz)   
                 
-                # Set satellite culmination time within 10 min after rising
-                times_c, events_c = sat.find_events(my_location, t_sat_r, t_sat_r + 0.007, altitude_degrees=10.0)
-                for t_sat_c, event_sat_c in zip(times_c, events_c):
-                    if event_sat_c == 1:
-                       t_sat_culm = t_sat_c
-                                                  
-                # Set satellite setting time within 10 min after rising
-                times_s, events_s = sat.find_events(my_location, t_sat_r, t_sat_r + 0.007, altitude_degrees=10.0)
-                for t_sat_s, event_sat_s in zip(times_s, events_s):
-                    if event_sat_s == 2:
-                       t_sat_set = t_sat_s.astimezone(tz)
+                # Set satellite culmination/setting time within 10 min after rising
+                t_cs, events_cs = sat.find_events(my_location, t_sat_r, t_sat_r + 0.007, altitude_degrees=10.0)
+                for t_sat_cs, event_sat_cs in zip(t_cs, events_cs):
+                    if event_sat_cs == 1:
+                       t_sat_culm = t_sat_cs
+                    elif event_sat_cs == 2: 
+                       t_sat_set = t_sat_cs.astimezone(tz)
                 
                 pass_duration = t_sat_set - t_sat_rise
                 
