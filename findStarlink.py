@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 from pytz import timezone
 from math import sin, cos, radians, log10, pi
 from concurrent.futures import ThreadPoolExecutor
+import os
+import time
 import json
 import requests
 
@@ -37,6 +39,17 @@ observer = eph['earth'] + home
 
 # Check if it is Dark
 isDark = almanac.dark_twilight_day(eph, home)
+
+# Checks if the file at the specified path was created more than 24 hours ago.
+def is_file_recent(file_path):
+    try:
+        file_mod_time = os.path.getmtime(file_path)
+        current_time = time.time()
+        time_difference_hours = (current_time - file_mod_time) / 3600
+        return time_difference_hours > 24
+    except FileNotFoundError:
+        # Handle the case where the file does not exist
+        return False
 
 # Load TLE data for Starlink satellites
 def load_sat_data(url):
@@ -203,6 +216,8 @@ def main():
         # Print the duration in seconds
         print("\nStart Time: ", start_time.astimezone(tz).strftime('%d %b %Y, %H:%M:%S'), "\n  End Time: ", end_exec_time.astimezone(tz).strftime('%d %b %Y, %H:%M:%S'), "\n  Duration: ", duration)
         
+# Check TLE freshness
+WEB = is_file_recent(tle_file)
 
 # Init the array of the Starlink Trains
 satellites = load_sat_data(starlink_url)
