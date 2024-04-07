@@ -11,6 +11,7 @@ import time
 import json
 import requests
 import argparse
+import ast
 
 # Flags for debugging
 DEBUG = False #True to print info
@@ -37,9 +38,20 @@ sun, earth,  = eph['sun'], eph['earth']
 default_latitude = 48.8534
 default_longitude = 2.3488
 
+# Custom action to parse a list from a string
+class ParseListAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        try:
+            # Parse the string as a Python list
+            parsed_list = ast.literal_eval(values)
+            setattr(namespace, self.dest, parsed_list)
+        except (ValueError, SyntaxError):
+            raise argparse.ArgumentTypeError(f"Invalid list format: {values}")
+           
 parser = argparse.ArgumentParser(description="Calculate satellite positions based on observer's location.")
 parser.add_argument("-lat", "--latitude", type=float, default=default_latitude, help="Observer's latitude")
 parser.add_argument("-lon", "--longitude", type=float, default=default_longitude, help="Observer's longitude")
+parser.add_argument("-sat_ids", "--sat_ids", type=str, action=ParseListAction, default=[], help="List of satellites to analyze")
 args = parser.parse_args()
 
 my_latitude = args.latitude
@@ -49,6 +61,8 @@ tf = TimezoneFinder()
 tz = timezone(tf.timezone_at(lng=my_longitude, lat=my_latitude))
 home = wgs84.latlon(my_latitude * N, my_longitude * W)
 observer = eph['earth'] + home
+
+my_sat = args.sat_ids
 
 # Check if it is Dark
 isDark = almanac.dark_twilight_day(eph, home)
@@ -189,6 +203,7 @@ def search_satellites(name):
 
                        data = {
                             "satellite": sat.name,
+                            "satellite_ID": sat.model.satnum,
                             "risingTime": t_sat_rise.strftime('%d %b %Y, %H:%M'),
                             "culminationTime": t_sat_culm.astimezone(tz).strftime('%d %b %Y, %H:%M'),
                             "settingTime": t_sat_set.strftime('%d %b %Y, %H:%M'),
@@ -235,7 +250,10 @@ WEB = is_file_recent(tle_file)
 # Init the array of the Starlink Trains
 satellites = load_sat_data(starlink_url)
 by_number = {sat.model.satnum: sat for sat in satellites}  
-STARLINK_IDS = one_sat_per_train()
+if len(my_sat) > 0:
+    STARLINK_IDS = my_sat
+else:
+    STARLINK_IDS = one_sat_per_train()
 starlink_found = []
 
 main()
