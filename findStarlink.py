@@ -4,11 +4,13 @@ from skyfield.framelib import ecliptic_frame
 from datetime import datetime, timedelta
 from pytz import timezone
 from math import sin, cos, radians, log10, pi
+from timezonefinder import TimezoneFinder
 from concurrent.futures import ThreadPoolExecutor
 import os
 import time
 import json
 import requests
+import argparse
 
 # Flags for debugging
 DEBUG = False #True to print info
@@ -32,9 +34,20 @@ eph = load('de421.bsp')
 sun, earth,  = eph['sun'], eph['earth']
 
 # Set observer's location (replace with your coordinates)
-my_location = Topos(latitude_degrees=48.8534, longitude_degrees=2.3488)
-tz = timezone('Europe/Paris')
-home = wgs84.latlon(48.8534 * N, 2.3488 * W)
+default_latitude = 48.8534
+default_longitude = 2.3488
+
+parser = argparse.ArgumentParser(description="Calculate satellite positions based on observer's location.")
+parser.add_argument("-lat", "--latitude", type=float, default=default_latitude, help="Observer's latitude")
+parser.add_argument("-lon", "--longitude", type=float, default=default_longitude, help="Observer's longitude")
+args = parser.parse_args()
+
+my_latitude = args.latitude
+my_longitude = args.longitude
+my_location = Topos(my_latitude, my_longitude)
+tf = TimezoneFinder() 
+tz = timezone(tf.timezone_at(lng=my_longitude, lat=my_latitude))
+home = wgs84.latlon(my_latitude * N, my_longitude * W)
 observer = eph['earth'] + home
 
 # Check if it is Dark
