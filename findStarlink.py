@@ -113,7 +113,7 @@ def one_sat_per_train():
     # Print the first Sat_ID for each Launch_ID
     sat_train = []
     for launch_id, sat_id in launch_to_sat.items():
-        sat_train.append(int(sat_id))
+        sat_train.append([int(sat_id),int(launch_id)])
 
     return sat_train
         
@@ -146,6 +146,11 @@ def sort_and_print(array):
         result.append(element)
     print(json.dumps(result, indent=4, default=str))    
 
+# Get launch ID of the satellite
+def get_launch_id(tuples_list, first_element):
+    tuples_dict = dict(tuples_list)
+    
+    return tuples_dict.get(first_element, "Element not found")
     
 # Take a satellite name and return its visibility information
 def search_satellites(name):
@@ -204,6 +209,7 @@ def search_satellites(name):
                        data = {
                             "satellite": sat.name,
                             "satellite_ID": sat.model.satnum,
+                            "launch_ID": get_launch_id(starlink_train, sat.model.satnum),
                             "risingTime": t_sat_rise.strftime('%d %b %Y, %H:%M'),
                             "culminationTime": t_sat_culm.astimezone(tz).strftime('%d %b %Y, %H:%M'),
                             "settingTime": t_sat_set.strftime('%d %b %Y, %H:%M'),
@@ -253,7 +259,8 @@ by_number = {sat.model.satnum: sat for sat in satellites}
 if len(my_sat) > 0:
     STARLINK_IDS = my_sat
 else:
-    STARLINK_IDS = one_sat_per_train()
+    starlink_train = one_sat_per_train()
+    STARLINK_IDS = [t[0] for t in starlink_train]
 starlink_found = []
 
 main()
