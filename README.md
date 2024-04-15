@@ -18,6 +18,8 @@ command_line:
       command: "cat path_to_the_JSON_file"
       json_attributes:
             - satellite
+            - satellite_ID
+            - launch_ID
             - risingTime
             - culminationTime
             - settingTime
