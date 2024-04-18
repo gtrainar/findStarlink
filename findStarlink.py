@@ -65,7 +65,8 @@ observer = eph['earth'] + home
 my_sat = args.sat_ids
 
 # Check if it is Dark
-isDark = almanac.dark_twilight_day(eph, home)
+def isDark(t):
+    return not almanac.sunrise_sunset(eph, my_location)(t)
 
 # Checks if the file at the specified path was created more than 24 hours ago.
 def is_file_recent(file_path):
@@ -159,7 +160,7 @@ def search_satellites(name):
         t, events = sat.find_events(my_location, start_time, end_time, altitude_degrees=10.0)
         for t_sat_r, event in zip(t, events):
             
-                if not (event == 0 and isDark(t_sat_r) == 0 and sat.at(t_sat_r).is_sunlit(eph)):  # 0 = satellite rises above altitude_degrees and is sunlit and it is Dark
+                if not (event == 0 and isDark(t_sat_r) and sat.at(t_sat_r).is_sunlit(eph)):  # 0 = satellite rises above altitude_degrees and is sunlit and it is Dark
                     continue
                 
                 t_sat_rise = t_sat_r.astimezone(tz)   
