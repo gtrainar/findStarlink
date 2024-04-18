@@ -258,6 +258,7 @@ WEB = is_file_recent(tle_file)
 satellites = load_sat_data(starlink_url)
 by_number = {sat.model.satnum: sat for sat in satellites}  
 if len(my_sat) > 0:
+    starlink_train = one_sat_per_train()
     STARLINK_IDS = my_sat
 else:
     starlink_train = one_sat_per_train()
