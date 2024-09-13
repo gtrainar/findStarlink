@@ -26,13 +26,14 @@ ts = load.timescale()
 
 # Start and end time
 start_time = ts.now()
-end_time = ts.utc(start_time.utc.year, start_time.utc.month, start_time.utc.day + 4)
+duration_days = 4
+end_time = ts.utc(start_time.utc.year, start_time.utc.month, start_time.utc.day + duration_days)
 
 # Load almanac
 eph = load('de421.bsp')
 
 # Get the Sun and satellite positions
-sun, earth,  = eph['sun'], eph['earth']
+sun, earth = eph['sun'], eph['earth']
 
 # Set observer's location (replace with your coordinates)
 default_latitude = 48.8534
