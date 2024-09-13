@@ -150,8 +150,13 @@ def sort_and_print(array):
 # Get launch ID of the satellite
 def get_launch_id(tuples_list, first_element):
     tuples_dict = dict(tuples_list)
+    launch_id = tuples_dict.get(first_element, "Element not found")
     
-    return tuples_dict.get(first_element, "Element not found")
+    if isinstance(launch_id, int):
+        formatted_id = f"20{str(launch_id)[:2]}-{str(launch_id)[2:]}"
+        return formatted_id
+    else:
+        return launch_id
     
 # Take a satellite name and return its visibility information
 def search_satellites(name):
